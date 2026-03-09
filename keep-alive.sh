@@ -2,4 +2,4 @@
 # Deploy this to cron-job.org or similar service
 
 # Ping URL every 14 minutes to prevent sleep
-*/14 * * * * curl https://your-app-name.onrender.com/health
+*/14 * * * * curl https://planning-poker-f92g.onrender.com/health
