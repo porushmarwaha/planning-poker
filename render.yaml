@@ -1,0 +1,12 @@
+# Render.com configuration for backend deployment
+services:
+  - type: web
+    name: planning-poker-server
+    env: node
+    buildCommand: npm install
+    startCommand: node server/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CLIENT_URL
+        value: https://your-frontend-app.vercel.app
