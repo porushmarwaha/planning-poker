@@ -3,6 +3,20 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 
 const app = express();
+const configuredOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
+  .split(',')
+  .map((origin) => origin.trim().replace(/\/$/, ''))
+  .filter(Boolean);
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+
+  const normalizedOrigin = origin.replace(/\/$/, '');
+  const exactMatch = configuredOrigins.includes(normalizedOrigin);
+  const vercelPreview = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(normalizedOrigin);
+
+  return exactMatch || vercelPreview;
+};
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -16,7 +30,14 @@ app.get('/health', (req, res) => {
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
     methods: ["GET", "POST"],
     credentials: true
   }
