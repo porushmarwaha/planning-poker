@@ -74,6 +74,8 @@ io.on('connection', (socket) => {
       return;
     }
 
+    room.players = room.players.filter(p => p.id !== socket.id);
+
     const player = {
       id: socket.id,
       name: playerName,
@@ -189,9 +191,10 @@ io.on('connection', (socket) => {
     
     // Remove player from all rooms
     rooms.forEach((room, roomId) => {
-      const playerIndex = room.players.findIndex(p => p.id === socket.id);
-      if (playerIndex !== -1) {
-        room.players.splice(playerIndex, 1);
+      const previousCount = room.players.length;
+      room.players = room.players.filter(p => p.id !== socket.id);
+
+      if (room.players.length !== previousCount) {
         io.to(roomId).emit('room-update', room);
       }
       
