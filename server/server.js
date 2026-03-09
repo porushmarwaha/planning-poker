@@ -179,8 +179,28 @@ io.on('connection', (socket) => {
     if (room && socket.id === room.host) {
       const issue = room.issues.find(i => i.id === issueId);
       if (issue) {
+        const voteEntries = Object.entries(issue.votes || {});
+        const finalVoteDetails = voteEntries.map(([playerId, vote]) => {
+          const player = room.players.find((roomPlayer) => roomPlayer.id === playerId);
+          return {
+            playerId,
+            name: player?.name || 'Unknown',
+            vote
+          };
+        });
+
+        const numericVotes = finalVoteDetails
+          .map((detail) => Number(detail.vote))
+          .filter((value) => !Number.isNaN(value));
+
+        const averageVote = numericVotes.length
+          ? (numericVotes.reduce((sum, value) => sum + value, 0) / numericVotes.length).toFixed(2)
+          : null;
+
         issue.estimate = estimate;
         issue.status = 'estimated';
+        issue.finalVoteDetails = finalVoteDetails;
+        issue.averageVote = averageVote;
       }
       io.to(roomId).emit('room-update', room);
     }

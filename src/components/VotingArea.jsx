@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Card from './Card';
+import VotingTable from './VotingTable';
 
 function VotingArea({ room, currentIssue, currentPlayer, isHost, socket, roomId }) {
   const [selectedCard, setSelectedCard] = useState(null);
@@ -74,37 +75,7 @@ function VotingArea({ room, currentIssue, currentPlayer, isHost, socket, roomId 
             </div>
           </div>
 
-          {/* Player Status Grid */}
-          <div className="mb-6">
-            <h3 className="text-sm font-semibold text-gray-600 mb-3">Players:</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {room.players.filter(p => !p.isSpectator).map(player => (
-                <div
-                  key={player.id}
-                  className={`p-3 rounded-lg border-2 ${
-                    player.currentVote
-                      ? 'border-green-500 bg-green-50'
-                      : 'border-gray-200 bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-800 truncate">
-                      {player.name}
-                    </span>
-                    {room.status === 'revealed' && player.currentVote ? (
-                      <span className="text-xl font-bold text-primary ml-2">
-                        {player.currentVote}
-                      </span>
-                    ) : player.currentVote ? (
-                      <span className="text-green-500 ml-2">✓</span>
-                    ) : (
-                      <span className="text-gray-400 ml-2">⏳</span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <VotingTable players={room.players} status={room.status} />
 
           {/* Host Controls */}
           {isHost && room.status === 'voting' && (

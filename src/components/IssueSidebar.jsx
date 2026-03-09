@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-function IssueSidebar({ issues, currentIssueId, isHost, socket, roomId }) {
+function IssueSidebar({ issues, players, currentIssueId, isHost, socket, roomId }) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newIssue, setNewIssue] = useState({ title: '', description: '' });
   const [showImport, setShowImport] = useState(false);
@@ -64,9 +64,29 @@ function IssueSidebar({ issues, currentIssueId, isHost, socket, roomId }) {
   };
 
   const handleExportCSV = () => {
-    let csv = 'Title,Description,Estimate,Status\n';
-    issues.forEach(issue => {
-      csv += `"${issue.title}","${issue.description}","${issue.estimate || 'N/A'}","${issue.status}"\n`;
+    const escapeCsv = (value) => {
+      const stringValue = value === null || value === undefined ? '' : String(value);
+      return `"${stringValue.replace(/"/g, '""')}"`;
+    };
+
+    const playerMap = Object.fromEntries(players.map((player) => [player.id, player.name]));
+    let csv = 'Issue Number,Title,Description,Estimate,Average Vote,Status,Voter Breakdown\n';
+
+    issues.forEach((issue, index) => {
+      const voteDetails = issue.finalVoteDetails || [];
+      const voteSummary = voteDetails
+        .map((detail) => `${detail.name || playerMap[detail.playerId] || 'Unknown'}:${detail.vote}`)
+        .join(' | ');
+
+      csv += [
+        escapeCsv(index + 1),
+        escapeCsv(issue.title),
+        escapeCsv(issue.description),
+        escapeCsv(issue.estimate || 'N/A'),
+        escapeCsv(issue.averageVote ?? 'N/A'),
+        escapeCsv(issue.status),
+        escapeCsv(voteSummary)
+      ].join(',') + '\n';
     });
 
     const blob = new Blob([csv], { type: 'text/csv' });

@@ -147,6 +147,7 @@ function Room() {
           <div className="lg:col-span-3">
             <IssueSidebar
               issues={room.issues}
+              players={room.players}
               currentIssueId={room.currentIssueId}
               isHost={isHost}
               socket={socket}
