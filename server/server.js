@@ -49,6 +49,36 @@ const rooms = new Map();
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
+  const finalizeIssueOnReveal = (room) => {
+    const issue = room.issues.find((item) => item.id === room.currentIssueId);
+    if (!issue) return;
+
+    const voteEntries = Object.entries(issue.votes || {});
+    const finalVoteDetails = voteEntries.map(([playerId, vote]) => {
+      const player = room.players.find((roomPlayer) => roomPlayer.id === playerId);
+      return {
+        playerId,
+        name: player?.name || 'Unknown',
+        vote
+      };
+    });
+
+    const numericVotes = finalVoteDetails
+      .map((detail) => Number(detail.vote))
+      .filter((value) => !Number.isNaN(value));
+
+    issue.finalVoteDetails = finalVoteDetails;
+    issue.averageVote = numericVotes.length
+      ? (numericVotes.reduce((sum, value) => sum + value, 0) / numericVotes.length).toFixed(2)
+      : null;
+
+    const distinctVotes = [...new Set(finalVoteDetails.map((detail) => detail.vote))];
+    if (distinctVotes.length === 1 && distinctVotes[0] !== undefined) {
+      issue.estimate = distinctVotes[0];
+      issue.status = 'estimated';
+    }
+  };
+
   socket.on('create-room', ({ roomId, roomName, deck, allowSpectators, autoReveal }) => {
     const room = {
       id: roomId,
@@ -150,6 +180,7 @@ io.on('connection', (socket) => {
         const allVoted = nonSpectators.every(p => p.currentVote !== null);
         if (allVoted) {
           room.status = 'revealed';
+          finalizeIssueOnReveal(room);
         }
       }
 
@@ -161,6 +192,7 @@ io.on('connection', (socket) => {
     const room = rooms.get(roomId);
     if (room && socket.id === room.host) {
       room.status = 'revealed';
+      finalizeIssueOnReveal(room);
       io.to(roomId).emit('room-update', room);
     }
   });
@@ -194,19 +226,16 @@ io.on('connection', (socket) => {
             vote
           };
         });
-
         const numericVotes = finalVoteDetails
           .map((detail) => Number(detail.vote))
           .filter((value) => !Number.isNaN(value));
 
-        const averageVote = numericVotes.length
-          ? (numericVotes.reduce((sum, value) => sum + value, 0) / numericVotes.length).toFixed(2)
-          : null;
-
         issue.estimate = estimate;
         issue.status = 'estimated';
         issue.finalVoteDetails = finalVoteDetails;
-        issue.averageVote = averageVote;
+        issue.averageVote = numericVotes.length
+          ? (numericVotes.reduce((sum, value) => sum + value, 0) / numericVotes.length).toFixed(2)
+          : null;
       }
       io.to(roomId).emit('room-update', room);
     }
