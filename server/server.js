@@ -109,6 +109,12 @@ io.on('connection', (socket) => {
   socket.on('start-voting', ({ roomId, issueId }) => {
     const room = rooms.get(roomId);
     if (room && socket.id === room.host) {
+      room.issues.forEach((issue) => {
+        if (issue.id !== issueId && issue.status === 'voting') {
+          issue.status = issue.estimate ? 'estimated' : 'pending';
+        }
+      });
+
       room.currentIssueId = issueId;
       room.status = 'voting';
       

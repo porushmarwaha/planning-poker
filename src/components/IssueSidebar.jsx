@@ -201,7 +201,7 @@ function IssueSidebar({ issues, players, currentIssueId, isHost, socket, roomId 
                   ? 'border-primary bg-blue-50'
                   : 'border-gray-200 hover:border-gray-300'
               }`}
-              onClick={() => isHost && issue.status !== 'voting' && handleStartVoting(issue.id)}
+              onClick={() => isHost && issue.id !== currentIssueId && handleStartVoting(issue.id)}
             >
               <div className="flex items-start justify-between mb-1">
                 <h3 className="text-sm font-semibold text-gray-800 flex-1">{issue.title}</h3>
