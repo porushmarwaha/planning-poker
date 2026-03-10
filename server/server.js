@@ -79,18 +79,28 @@ io.on('connection', (socket) => {
     }
   };
 
-  socket.on('create-room', ({ roomId, roomName, deck, allowSpectators, autoReveal }) => {
+  socket.on('create-room', ({ roomId, roomName, deck, allowSpectators, autoReveal, roomSnapshot }) => {
+    const existingRoom = rooms.get(roomId);
+    if (existingRoom) {
+      existingRoom.host = socket.id;
+      socket.join(roomId);
+      socket.emit('room-created', existingRoom);
+      io.to(roomId).emit('room-update', existingRoom);
+      return;
+    }
+
+    const safeSnapshot = roomSnapshot && typeof roomSnapshot === 'object' ? roomSnapshot : null;
     const room = {
       id: roomId,
-      name: roomName,
-      deck: deck,
+      name: safeSnapshot?.name || roomName,
+      deck: Array.isArray(safeSnapshot?.deck) ? safeSnapshot.deck : deck,
       host: socket.id,
       players: [],
-      issues: [],
-      currentIssueId: null,
-      status: 'idle',
-      allowSpectators,
-      autoReveal
+      issues: Array.isArray(safeSnapshot?.issues) ? safeSnapshot.issues : [],
+      currentIssueId: safeSnapshot?.currentIssueId || null,
+      status: safeSnapshot?.status || 'idle',
+      allowSpectators: safeSnapshot?.allowSpectators ?? allowSpectators,
+      autoReveal: safeSnapshot?.autoReveal ?? autoReveal
     };
     rooms.set(roomId, room);
     socket.join(roomId);

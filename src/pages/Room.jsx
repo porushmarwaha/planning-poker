@@ -16,6 +16,7 @@ function Room() {
 
   useEffect(() => {
     const gameData = JSON.parse(localStorage.getItem('currentGame') || '{}');
+    const resolvedRoomId = gameData.roomId || roomId;
     
     if (!gameData.playerName) {
       navigate(`/join/${roomId}`);
@@ -27,24 +28,25 @@ function Room() {
     const newSocket = io(socketUrl);
     setSocket(newSocket);
 
+    const emitCreateRoom = () => {
+      const roomSnapshot = JSON.parse(localStorage.getItem(`room_${resolvedRoomId}`) || 'null');
+      newSocket.emit('create-room', {
+        roomId: resolvedRoomId,
+        roomName: gameData.gameName,
+        deck: gameData.deck,
+        allowSpectators: gameData.allowSpectators,
+        autoReveal: gameData.autoReveal,
+        roomSnapshot
+      });
+    };
+
     newSocket.on('connect', () => {
       if (gameData.isHost) {
-        // Create room as host
-        newSocket.emit('create-room', {
-          roomId: gameData.roomId,
-          roomName: gameData.gameName,
-          deck: gameData.deck,
-          allowSpectators: gameData.allowSpectators,
-          autoReveal: gameData.autoReveal
-        });
-
-        newSocket.on('room-created', (createdRoom) => {
-          // Host joins their own room
-          newSocket.emit('join-room', {
-            roomId: gameData.roomId,
-            playerName: gameData.playerName,
-            isSpectator: false
-          });
+        // Host reconnects to existing room first; create only if missing
+        newSocket.emit('join-room', {
+          roomId: resolvedRoomId,
+          playerName: gameData.playerName,
+          isSpectator: false
         });
       } else {
         // Join existing room
@@ -68,7 +70,21 @@ function Room() {
       setCurrentPlayer(player);
     });
 
+    newSocket.on('room-created', () => {
+      // Host joins their own room after creation
+      newSocket.emit('join-room', {
+        roomId: resolvedRoomId,
+        playerName: gameData.playerName,
+        isSpectator: false
+      });
+    });
+
     newSocket.on('room-error', (error) => {
+      if (gameData.isHost && error.message === 'Room not found') {
+        emitCreateRoom();
+        return;
+      }
+
       alert(error.message);
       navigate('/');
     });
